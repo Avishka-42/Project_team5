@@ -163,10 +163,135 @@ router.post('/register', async (req, res) => {
     if (user) return res.status(400).json({ msg: 'User already exists' });
 user = new User({ name, email, password });
     await user.save();
-const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' })
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ msg: 'Invalid credentials' });
+const isMatch = await user.comparePassword(password);
+    if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
+ const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+>>>>>>> test4
     res.json({ token });
   } catch (err) {
     res.status(500).json({ msg: 'Server error' });
+  }
+});
+module.exports = router;
+console.log(Authenticated user: ${req.user.email} - ${new Date().toISOString()});
+router.put('/notifications/:id/read', auth, async (req, res) => {
+  try {
+    const note = await Notification.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { read: true },
+      { new: true }
+    );
+    if (!note) return res.status(404).json({ msg: 'Notification not found' });
+    res.json(note);
+  } catch (err) {
+    res.status(500).json({ msg: 'Failed to update notification' });
+  }
+});
+const express = require('express');
+const router = express.Router();
+const Expense = require('../models/Expense');
+const auth = require('../middleware/auth');
+router.post('/', auth, async (req, res) => {
+  const { category, amount, description, date } = req.body;
+  try {
+    const expense = new Expense({
+      user: req.user._id,
+      category,
+      amount,
+      description,
+      date,
+    });
+    await expense.save();
+    res.json(expense);
+  } catch (err) {
+    res.status(500).json({ msg: 'Failed to add expense' });
+  }
+});
+router.get('/', auth, async (req, res) => {
+  try {
+    const expenses = await Expense.find({ user: req.user._id }).sort({ date: -1 });
+    res.json(expenses);
+  } catch (err) {
+    res.status(500).json({ msg: 'Failed to fetch expenses' });
+  }
+});
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const expense = await Expense.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      req.body,
+      { new: true }
+    );
+    if (!expense) return res.status(404).json({ msg: 'Expense not found' });
+    res.json(expense);
+  } catch (err) {
+    res.status(500).json({ msg: 'Update failed' });
+  }
+});
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const result = await Expense.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    if (!result) return res.status(404).json({ msg: 'Expense not found' });
+    res.json({ msg: 'Deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Delete failed' });
+  }
+});
+module.exports = router;
+console.log(User ${req.user.email} created/updated/deleted an expense on ${new Date().toISOString()});
+router.get('/', auth, async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  try {
+    const expenses = await Expense.find({ user: req.user._id })
+      .sort({ date: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+    const total = await Expense.countDocuments({ user: req.user._id });
+    res.json({ expenses, totalPages: Math.ceil(total / limit), currentPage: +page });
+  } catch (err) {
+    res.status(500).json({ msg: 'Failed to fetch expenses' });
+  }
+});
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const app = express();
+app.use(express.json());
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/expenses', require('./routes/expenses'));
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error(err));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(Server running on port ${PORT}));
+const validateExpense = require('../middleware/validateExpense');
+router.post('/', auth, validateExpense, async (req, res) => {
+MONGO_URI=your_mongodb_uri
+JWT_SECRET=your_secret_key
+currency: {
+  type: String,
+  default: 'INR'
+},
+paymentMethod: {
+  type: String,
+  enum: ['Cash', 'Card', 'UPI', 'Other'],
+  default: 'Cash'
+}
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const expense = await Expense.findOne({ _id: req.params.id, user: req.user._id });
+    if (!expense) return res.status(404).json({ msg: 'Expense not found' });
+    res.json(expense);
+  } catch (err) {
+    res.status(500).json({ msg: 'Failed to fetch expense' });
   }
 }); 
 
