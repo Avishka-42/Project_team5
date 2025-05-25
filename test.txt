@@ -1,3 +1,51 @@
-Iam Avishka v
-studing in amity university 
+const Notification = require('../models/Notification');
+if (amount > 5000) {
+  const note = new Notification({
+    user: req.user._id,
+    message: High expense alert: You spent ₹${amount} on ${category}
+  });
+  await note.save();
+}
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+module.exports = async function (req, res, next) {
+  const token = req.header('Authorization')?.split(' ')[1];
+  if (!token) return res.status(401).json({ msg: 'No token. Access denied.' });
+try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id).select('-password');
+    next();
+  } catch (err) {
+    res.status(401).json({ msg: 'Token is not valid' });
+  }
+};
+router.get('/categories', auth, (req, res) => {
+  const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Health', 'Education', 'Entertainment', 'Others'];
+  res.json(categories);
+});
+router.get('/notifications', auth, async (req, res) => {
+  try {
+    const notes = await Notification.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(notes);
+  } catch (err) {
+    res.status(500).json({ msg: 'Failed to fetch notifications' });
+  }
+});
+const express = require('express');
+const router = express.Router();
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+router.post('/register', async (req, res) => {
+  const { name, email, password } = req.body;
+  try {
+    let user = await User.findOne({ email });
+    if (user) return res.status(400).json({ msg: 'User already exists' });
+user = new User({ name, email, password });
+    await user.save();
+const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
+  }
+}); 
 
