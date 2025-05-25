@@ -1,3 +1,62 @@
-Iam Avishka v
-studing in amity university 
+onst mongoose = require('mongoose');
+const notificationSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  message: {
+    type: String,
+    required: true
+  },
+  read: {
+    type: Boolean,
+    default: false
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+module.exports = mongoose.model('Notification', notificationSchema);
+const mongoose = require('mongoose');
+const expenseSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  category: {
+    type: String,
+    required: true,
+  },
+  amount: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  description: String,
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+}, { timestamps: true });
+module.exports = mongoose.model('Expense', expenseSchema);
+router.get('/summary/monthly', auth, async (req, res) => {
+  try {
+    const summary = await Expense.aggregate([
+      { $match: { user: req.user._id } },
+      {
+        $group: {
+          _id: { $month: "$date" },
+          total: { $sum: "$amount" },
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+    res.json(summary);
+  } catch (err) {
+    res.status(500).json({ msg: 'Failed to get summary' });
+  }
+});
 
