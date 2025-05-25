@@ -1,2 +1,61 @@
 
+expenses-backend/
+│
+├── models/
+│   ├── Expense.js
+│   └── User.js
+│
+├── routes/
+│   ├── auth.js
+│   └── expenses.js
+│
+├── middleware/
+│   └── auth.js
+│
+├── server.js
+├── .env
+├── package.json
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+  },
+}, { timestamps: true });
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+userSchema.methods.comparePassword = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+module.exports = mongoose.model('User', userSchema);
+module.exports = function (req, res, next) {
+  const { category, amount, date } = req.body;
+  if (!category || typeof category !== 'string') {
+    return res.status(400).json({ msg: 'Category is required and must be a string.' });
+  }
+  if (typeof amount !== 'number' || amount < 0) {
+    return res.status(400).json({ msg: 'Amount must be a positive number.' });
+  }
+  if (date && isNaN(Date.parse(date))) {
+    return res.status(400).json({ msg: 'Invalid date format.' });
+  }
+  next();
+};
 
